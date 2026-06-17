@@ -1,5 +1,9 @@
+from settings import settings
+
+
 def main():
-    print("Hello from ai-recruitment-system!")
+    print(settings.DATABASE_URL)
+    print(settings.model_dump_json(indent=4))
 
 
 if __name__ == "__main__":
