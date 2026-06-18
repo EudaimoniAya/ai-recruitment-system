@@ -19,4 +19,15 @@ htmlcov/
 .tox/
 .nox/
 
+# Alembic / 数据库迁移（本地与临时文件；alembic/versions/*.py 迁移脚本需提交）
+alembic.local.ini
+alembic.ini.local
+alembic/versions/*.orig
+alembic/versions/*~
+*.db
+*.sqlite3
+*.sqlite3-journal
+test.db
+test_schema.db
+
 .env

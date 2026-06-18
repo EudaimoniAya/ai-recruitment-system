@@ -17,10 +17,18 @@ dependencies = [
     "langgraph-checkpoint-postgres>=3.1.0",
     "openai>=2.40.0",
     "psycopg[binary]>=3.3.4",
+    "pwdlib[argon2]>=0.3.0",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
     "pymupdf>=1.27.2.3",
     "ragas>=0.3.1",
+    "shortuuid>=1.0.13",
     "tiktoken>=0.13.0",
     "wandb>=0.27.0",
+]
+
+[dependency-groups]
+dev = [
+    "alembic>=1.18.4",
+    "mypy>=2.1.0",
 ]
