@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import enum
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
     String,
@@ -11,13 +13,11 @@ from sqlalchemy import (
     ForeignKey,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from . import BaseModel
-from .user import UserModel, DepartmentModel
 from datetime import datetime
-
+from . import BaseModel
 
 if TYPE_CHECKING:
+    from .user import UserModel, DepartmentModel
     from .candidate import CandidateModel
 
 
@@ -46,7 +46,11 @@ class PositionModel(BaseModel):
     recruitment_count: Mapped[int] = mapped_column(Integer, default=1)
     # 最低学历要求
     education: Mapped[EducationEnum] = mapped_column(
-        SQLAlchemyEnum(EducationEnum), default=EducationEnum.UNKNOWN, nullable=False
+        SQLAlchemyEnum(
+            EducationEnum, values_callable=lambda obj: [e.value for e in obj]
+        ),
+        default=EducationEnum.UNKNOWN,
+        nullable=False,
     )
     # 最低工作年限要求
     work_year: Mapped[int] = mapped_column(Integer, default=0)
@@ -56,6 +60,6 @@ class PositionModel(BaseModel):
     department_id: Mapped[str] = mapped_column(ForeignKey("departments.id"))
     creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
 
-    department: Mapped["DepartmentModel"] = relationship(lazy="joined")
-    creator: Mapped["UserModel"] = relationship(lazy="joined")
-    candidates: Mapped[List["CandidateModel"]] = relationship(back_populates="position")
+    department: Mapped[DepartmentModel] = relationship(lazy="joined")
+    creator: Mapped[UserModel] = relationship(lazy="joined")
+    candidates: Mapped[List[CandidateModel]] = relationship(back_populates="position")

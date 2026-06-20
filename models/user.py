@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 from typing import List, Optional
 from pwdlib import PasswordHash
@@ -55,13 +57,13 @@ class UserModel(BaseModel):
     is_hr: Mapped[bool] = mapped_column(Boolean, default=False)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    department: Mapped[Optional["DepartmentModel"]] = relationship(
+    department: Mapped[Optional[DepartmentModel]] = relationship(
         back_populates="members", foreign_keys=[department_id], lazy="joined"
     )
-    managed_departments: Mapped[List["DepartmentModel"]] = relationship(
+    managed_departments: Mapped[List[DepartmentModel]] = relationship(
         secondary=hr_managed_departments, back_populates="managing_hrs"
     )
-    dingding_user: Mapped["DingdingUserModel"] = relationship(
+    dingding_user: Mapped[Optional[DingdingUserModel]] = relationship(
         back_populates="user", uselist=False
     )
 
@@ -90,8 +92,8 @@ class DepartmentModel(BaseModel):
         String(100), unique=True, index=True, nullable=False
     )
     description: Mapped[Optional[str]] = mapped_column(String(255))
-    members: Mapped[List["UserModel"]] = relationship(back_populates="department")
-    managing_hrs: Mapped[List["UserModel"]] = relationship(
+    members: Mapped[List[UserModel]] = relationship(back_populates="department")
+    managing_hrs: Mapped[List[UserModel]] = relationship(
         secondary=hr_managed_departments, back_populates="managed_departments"
     )
 
@@ -115,5 +117,7 @@ class DingdingUserModel(BaseModel):
     # refresh_token的过期时间，保存的是时间戳
     refresh_token_expire_at: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
-    user: Mapped["UserModel"] = relationship(back_populates="dingding_user")
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id"), nullable=False, unique=True
+    )
+    user: Mapped[UserModel] = relationship(back_populates="dingding_user")

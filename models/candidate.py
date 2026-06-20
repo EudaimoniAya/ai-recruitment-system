@@ -1,15 +1,17 @@
+from __future__ import annotations
+
 import enum
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import String, Text, Integer, Enum as SQLAlchemyEnum, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import BaseModel
-from .user import UserModel, DepartmentModel
-
 
 if TYPE_CHECKING:
+    from .interview import InterviewModel
     from .positions import PositionModel
+    from .user import UserModel
 
 
 class CandidateStatusEnum(str, enum.Enum):
@@ -47,10 +49,14 @@ class CandidateModel(BaseModel):
 
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     gender: Mapped[GenderEnum] = mapped_column(
-        SQLAlchemyEnum(GenderEnum), default=GenderEnum.UNKNOWN, nullable=False
+        SQLAlchemyEnum(
+            GenderEnum, values_callable=lambda obj: [e.value for e in obj]
+        ),
+        default=GenderEnum.UNKNOWN,
+        nullable=False,
     )
     birthday: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    email: Mapped[str] = mapped_column(String(100), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     phone_number: Mapped[Optional[str]] = mapped_column(String(20), index=True)
     work_experience: Mapped[Optional[str]] = mapped_column(Text)
     project_experience: Mapped[Optional[str]] = mapped_column(Text)
@@ -67,18 +73,23 @@ class CandidateModel(BaseModel):
     )
 
     position_id: Mapped[str] = mapped_column(ForeignKey("positions.id"))
-    resume_id: Mapped[str] = mapped_column(ForeignKey("resumes.id"))
+    resume_id: Mapped[str] = mapped_column(
+        ForeignKey("resumes.id"), unique=True
+    )
     # 这条数据是由谁创建的
     creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
 
-    position: Mapped["PositionModel"] = relationship(
+    position: Mapped[PositionModel] = relationship(
         back_populates="candidates", lazy="joined"
     )
-    resume: Mapped["ResumeModel"] = relationship(
+    resume: Mapped[ResumeModel] = relationship(
         back_populates="candidate", uselist=False, lazy="joined"
     )
-    creator: Mapped["UserModel"] = relationship(lazy="joined")
-    ai_score: Mapped["CandidateAIScoreModel"] = relationship(
+    creator: Mapped[UserModel] = relationship(lazy="joined")
+    ai_score: Mapped[Optional[CandidateAIScoreModel]] = relationship(
+        back_populates="candidate", uselist=False
+    )
+    interview: Mapped[Optional[InterviewModel]] = relationship(
         back_populates="candidate", uselist=False
     )
 
@@ -96,9 +107,11 @@ class CandidateAIScoreModel(BaseModel):
     strengths: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     weaknesses: Mapped[list[str]] = mapped_column(JSON, nullable=False)
 
-    candidate_id: Mapped[str] = mapped_column(ForeignKey("candidates.id"))
+    candidate_id: Mapped[str] = mapped_column(
+        ForeignKey("candidates.id"), unique=True
+    )
 
-    candidate: Mapped["CandidateModel"] = relationship(back_populates="ai_score")
+    candidate: Mapped[CandidateModel] = relationship(back_populates="ai_score")
 
 
 class ResumeModel(BaseModel):
@@ -106,5 +119,5 @@ class ResumeModel(BaseModel):
 
     file_path: Mapped[str] = mapped_column(String(255), nullable=False)
     uploader_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
-    uploader: Mapped["UserModel"] = relationship()
-    candidate: Mapped["CandidateModel"] = relationship(back_populates="resume")
+    uploader: Mapped[UserModel] = relationship()
+    candidate: Mapped[CandidateModel] = relationship(back_populates="resume")
