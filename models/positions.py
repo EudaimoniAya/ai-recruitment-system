@@ -1,5 +1,5 @@
 import enum
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy import (
     String,
@@ -15,6 +15,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from . import BaseModel
 from .user import UserModel, DepartmentModel
 from datetime import datetime
+
+
+if TYPE_CHECKING:
+    from .candidate import CandidateModel
 
 
 class EducationEnum(str, enum.Enum):

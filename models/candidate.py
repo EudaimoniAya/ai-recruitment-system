@@ -1,11 +1,15 @@
 import enum
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import String, Text, Integer, Enum as SQLAlchemyEnum, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import BaseModel
 from .user import UserModel, DepartmentModel
+
+
+if TYPE_CHECKING:
+    from .positions import PositionModel
 
 
 class CandidateStatusEnum(str, enum.Enum):
