@@ -13,11 +13,16 @@ from pydantic import Field
 
 
 class DBSettings(BaseSettings):
+    # --- 数据库配置 ---
     db_username: str = Field(...)
     db_password: str = Field(...)
     db_host: str = Field(...)
     db_port: int = Field(...)
     db_name: str = Field(...)
+
+    # --- Redis配置 ---
+    redis_host: str = Field(...)
+    redis_port: str = Field(...)
 
     @computed_field
     @property
@@ -36,6 +41,9 @@ class LLMSettings(BaseSettings):
 
 
 class Settings(DBSettings, LLMSettings):
+
+    # --- 邀请码过期时间 ---
+    invite_code_expire: int = 60 * 60 * 24 * 2
 
     # --- 安全配置 ---
     jwt_secret_key: str = Field(
