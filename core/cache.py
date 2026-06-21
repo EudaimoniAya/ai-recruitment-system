@@ -1,8 +1,21 @@
-from fastapi_cache import FastAPICache
+from redis.asyncio import Redis
 from core.single import SingletonMeta
 from settings import settings
-from fastapi_cache.backends.redis import RedisBackend
 from pydantic import BaseModel, EmailStr
+
+_redis: Redis | None = None
+
+
+def init_redis(redis: Redis) -> None:
+    """在应用 lifespan 中初始化 Redis 连接"""
+    global _redis
+    _redis = redis
+
+
+def get_redis() -> Redis:
+    if _redis is None:
+        raise RuntimeError("Redis 尚未初始化，请先调用 init_redis()")
+    return _redis
 
 
 class InviteInfoSchema(BaseModel):
@@ -15,17 +28,16 @@ class HRCache(metaclass=SingletonMeta):
     invite_prefix = "invite:"
 
     def __init__(self):
-        self.cache_backend: RedisBackend = FastAPICache.get_backend()
+        self.redis = get_redis()
 
     async def set(self, key, value, ex: int):
-        await self.cache_backend.set(key, value, expire=ex if ex else None)
+        await self.redis.set(key, value, ex=ex if ex else None)
 
     async def get(self, key):
-        value = await self.cache_backend.get(key)
-        return value
+        return await self.redis.get(key)
 
     async def delete(self, key):
-        await self.cache_backend.clear(key)
+        await self.redis.delete(key)
 
     async def set_invite_info(self, invite_info: InviteInfoSchema):
         key = f"{self.invite_prefix}{invite_info.email}"

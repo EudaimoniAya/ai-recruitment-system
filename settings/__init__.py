@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, model_validator
 
 
 class DBSettings(BaseSettings):
@@ -43,12 +43,24 @@ class LLMSettings(BaseSettings):
 class EmailSettings(BaseSettings):
     mail_username: str = Field(...)
     mail_password: str = Field(...)
-    mail_from: str = Field(..., validation_alias="MAIL_USERNAME")
+    # 发件人地址，未配置时默认与 MAIL_USERNAME 相同
+    mail_from: str | None = Field(default=None)
     mail_port: int = 587
     mail_server: str = "smtp.qq.com"
     mail_from_name: str = "Aya"
     mail_starttls: bool = True
     mail_ssl_tls: bool = False
+
+    @model_validator(mode="after")
+    def validate_mail_from(self):
+        if self.mail_from is None:
+            self.mail_from = self.mail_username
+        elif self.mail_from != self.mail_username:
+            raise ValueError(
+                "MAIL_FROM 必须与 MAIL_USERNAME 相同。"
+                "使用 QQ 邮箱 SMTP 时，发件人地址必须与登录账号一致。"
+            )
+        return self
 
 
 class Settings(DBSettings, LLMSettings, EmailSettings):

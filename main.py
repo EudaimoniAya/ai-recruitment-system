@@ -11,8 +11,7 @@ from routers.user_router import router as user_router
 import uvicorn
 from settings import settings
 from redis import asyncio as aioredis
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
+from core.cache import init_redis
 from contextlib import asynccontextmanager
 
 
@@ -23,10 +22,9 @@ async def lifespan(_: FastAPI):
         encoding="utf8",
         decode_responses=True,
     )
-    redis_backend = RedisBackend(redis)
-    FastAPICache.init(redis_backend, prefix="fastapi-cache")
+    init_redis(redis)
     yield
-    await redis.close()
+    await redis.aclose()
 
 
 app = FastAPI(lifespan=lifespan)
