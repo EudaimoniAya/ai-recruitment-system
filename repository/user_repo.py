@@ -1,4 +1,4 @@
-from sqlalchemy import select, exists
+from sqlalchemy import select, exists, func
 from . import BaseRepo
 from sqlalchemy.orm import selectinload
 
@@ -37,6 +37,13 @@ class UserRepo(BaseRepo):
         stmt = stmt.offset(offset).limit(size)
         users = await self.session.scalars(stmt)
         return users.all()
+
+    async def get_user_count(self, department_id: str | None = None) -> int:
+        stmt = select(func.count()).select_from(UserModel)
+        if department_id:
+            stmt = stmt.where(UserModel.department_id == department_id)
+        total = await self.session.scalar(stmt)
+        return total or 0
 
     async def set_dingding_user(
         self, user_id: str, dingding_user_data: dict
