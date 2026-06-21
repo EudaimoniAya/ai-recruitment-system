@@ -40,7 +40,18 @@ class LLMSettings(BaseSettings):
     langchain_tracing_v2: bool = Field(...)
 
 
-class Settings(DBSettings, LLMSettings):
+class EmailSettings(BaseSettings):
+    mail_username: str = Field(...)
+    mail_password: str = Field(...)
+    mail_from: str = Field(..., validation_alias="MAIL_USERNAME")
+    mail_port: int = 587
+    mail_server: str = "smtp.qq.com"
+    mail_from_name: str = "Aya"
+    mail_starttls: bool = True
+    mail_ssl_tls: bool = False
+
+
+class Settings(DBSettings, LLMSettings, EmailSettings):
 
     # --- 邀请码过期时间 ---
     invite_code_expire: int = 60 * 60 * 24 * 2
