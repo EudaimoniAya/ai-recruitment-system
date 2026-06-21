@@ -14,7 +14,12 @@ from dependencies import (
     get_super_user,
 )
 from schemas import ResponseSchema
-from schemas.user_schema import UserInviteSchema, UserLoginSchema, UserLoginRespSchema
+from schemas.user_schema import (
+    UserInviteSchema,
+    UserLoginSchema,
+    UserLoginRespSchema,
+    UserRegisterSchema,
+)
 from tasks import send_invite_email_task
 
 router = APIRouter(prefix="/user", tags=["users"])
@@ -95,4 +100,43 @@ async def invite_user(
         invite_code=invite_code,
     )
     await cache.set_invite_info(invite_info)
+    return ResponseSchema()
+
+
+@router.post("/register", summary="注册")
+async def register(
+    register_data: UserRegisterSchema,
+    session: AsyncSession = Depends(get_session_instance),
+    cache: HRCache = Depends(get_cache_instance),
+):
+    email = register_data.email
+    # 1. 校验邮箱和邀请码是否正确
+    invite_info: InviteInfoSchema = await cache.get_invite_info(str(email))
+    if not invite_info:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="该邮箱账号不存在！"
+        )
+    if invite_info.invite_code != register_data.invite_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="邀请码错误！"
+        )
+
+    async with session.begin():
+        # 3. 校验邮箱是否已经注册
+        user_repo = UserRepo(session)
+        user: UserModel = await user_repo.get_by_email(str(email))
+        if user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="该邮箱已被注册！"
+            )
+        # 4. 创建用户
+        await user_repo.create_user(
+            {
+                "email": email,
+                "username": register_data.username,
+                "realname": register_data.realname,
+                "password": register_data.password,
+                "department_id": invite_info.department_id,
+            }
+        )
     return ResponseSchema()
