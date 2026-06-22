@@ -21,6 +21,7 @@ from schemas.user_schema import (
     UserLoginSchema,
     UserLoginRespSchema,
     UserRegisterSchema,
+    UserStatusUpdateSchema,
 )
 from tasks import send_invite_email_task
 
@@ -159,3 +160,25 @@ async def user_list(
         )
         total = await user_repo.get_user_count(department_id=department_id)
     return {"users": users, "total": total}
+
+
+@router.patch("/status/update", summary="修改员工状态", response_model=ResponseSchema)
+async def update_status(
+    status_data: UserStatusUpdateSchema,
+    session: AsyncSession = Depends(get_session_instance),
+    _: UserModel = Depends(get_super_user),
+):
+    async with session.begin():
+        user_repo = UserRepo(session)
+        user: UserModel = await user_repo.get_by_id(status_data.user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="该员工不存在！"
+            )
+        if user.is_superuser:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="不能修改超级用户的状态！",
+            )
+        user.status = status_data.status
+    return ResponseSchema()

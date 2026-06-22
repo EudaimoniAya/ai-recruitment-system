@@ -42,7 +42,7 @@ app.include_router(user_router)
 
 def main():
     # loop="none" 让 uvicorn 使用系统 event loop policy，避免 Windows 上强制 ProactorEventLoop
-    uvicorn.run(app, host="127.0.0.1", port=8000, loop="none")
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, loop="none", reload=True)
 
 
 if __name__ == "__main__":
