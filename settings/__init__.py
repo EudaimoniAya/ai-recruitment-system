@@ -68,6 +68,12 @@ class Settings(DBSettings, LLMSettings, EmailSettings):
     # --- 邀请码过期时间 ---
     invite_code_expire: int = 60 * 60 * 24 * 2
 
+    # --- 钉钉配置 ---
+    dingtalk_client_id: str = Field(...)
+    dingtalk_client_secret: str = Field(...)
+    dingtalk_refresh_token_expires: int = 60 * 60 * 24 * 30
+    backend_base_url: str = Field(...)
+
     # --- 安全配置 ---
     jwt_secret_key: str = Field(
         default=secrets.token_urlsafe(32),

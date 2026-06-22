@@ -1,5 +1,6 @@
 from redis.asyncio import Redis
 from core.single import SingletonMeta
+from schemas.cache_schema import DingTalkTokenInfoSchema
 from settings import settings
 from pydantic import BaseModel, EmailStr
 
@@ -26,6 +27,7 @@ class InviteInfoSchema(BaseModel):
 
 class HRCache(metaclass=SingletonMeta):
     invite_prefix = "invite:"
+    dingtalk_prefix = "dingtalk:"
 
     def __init__(self):
         self.redis = get_redis()
@@ -53,3 +55,12 @@ class HRCache(metaclass=SingletonMeta):
 
     async def delete_invite_info(self, email: str):
         await self.delete(key=f"{self.invite_prefix}{email}")
+
+    async def set_dingtalk_info(self, dingtalk_info: DingTalkTokenInfoSchema):
+        key = f"{self.dingtalk_prefix}{dingtalk_info.user_id}"
+        await self.set(key, dingtalk_info.model_dump_json(), ex=60 * 60 * 24 * 29)
+
+    async def get_dingtalk_info(self, user_id: str):
+        key = f"{self.dingtalk_prefix}{user_id}"
+        value = await self.get(key)
+        return DingTalkTokenInfoSchema.model_validate_json(value)
