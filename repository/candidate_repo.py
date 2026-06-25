@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from models.candidate import ResumeModel
+from models.candidate import CandidateModel, ResumeModel
 from repository import BaseRepo
 
 
@@ -13,3 +13,12 @@ class ResumeRepo(BaseRepo):
         return await self.session.scalar(
             select(ResumeModel).where(ResumeModel.id == resume_id)
         )
+
+
+class CandidateRepo(BaseRepo):
+    async def create_candidate(self, candidate_info: dict) -> CandidateModel:
+        candidate = CandidateModel(**candidate_info)
+        self.session.add(candidate)
+        await self.session.flush([candidate])
+        await self.session.refresh(candidate, ["position", "resume"])
+        return candidate

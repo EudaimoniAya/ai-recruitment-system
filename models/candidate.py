@@ -49,9 +49,7 @@ class CandidateModel(BaseModel):
 
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     gender: Mapped[GenderEnum] = mapped_column(
-        SQLAlchemyEnum(
-            GenderEnum, values_callable=lambda obj: [e.value for e in obj]
-        ),
+        SQLAlchemyEnum(GenderEnum),
         default=GenderEnum.UNKNOWN,
         nullable=False,
     )
@@ -73,9 +71,7 @@ class CandidateModel(BaseModel):
     )
 
     position_id: Mapped[str] = mapped_column(ForeignKey("positions.id"))
-    resume_id: Mapped[str] = mapped_column(
-        ForeignKey("resumes.id"), unique=True
-    )
+    resume_id: Mapped[str] = mapped_column(ForeignKey("resumes.id"), unique=True)
     # 这条数据是由谁创建的
     creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
 
@@ -107,9 +103,7 @@ class CandidateAIScoreModel(BaseModel):
     strengths: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     weaknesses: Mapped[list[str]] = mapped_column(JSON, nullable=False)
 
-    candidate_id: Mapped[str] = mapped_column(
-        ForeignKey("candidates.id"), unique=True
-    )
+    candidate_id: Mapped[str] = mapped_column(ForeignKey("candidates.id"), unique=True)
 
     candidate: Mapped[CandidateModel] = relationship(back_populates="ai_score")
 
