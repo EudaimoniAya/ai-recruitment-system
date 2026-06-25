@@ -1,17 +1,33 @@
 import os, aiofiles
 from pathlib import Path
 from uuid import uuid4
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.cache import HRCache
 from core.ocr import PaddleOcr
 from core.pdf import WordToPdfConverter
-from dependencies import get_current_user, get_session_instance
+from dependencies import get_cache_instance, get_current_user, get_session_instance
 from models.user import UserModel
 from repository.candidate_repo import ResumeRepo
-from schemas.candidate_schema import ResumeUploadRespSchema
+from schemas.candidate_schema import (
+    ResumeParseTaskInfoRespSchema,
+    ResumeParseTaskRespSchema,
+    ResumePaseSchema,
+    ResumeUploadRespSchema,
+)
 from settings import settings
 from loguru import logger
+
+from tasks import ocr_parse_resume_task
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
 
@@ -77,6 +93,38 @@ async def resume_upload(
             file_path=file_name, uploader_id=current_user.id
         )
     return {"resume": resume}
+
+
+# 1. 发起了一个简历识别的请求，创建一个后台任务，把task_id返回给前端
+# 2. 前端就可以通过task_id来获取这个任务的执行结果，当执行结果为success时，那么就返回解析后的数据
+@router.post(
+    "/resume/parse", summary="简历解析", response_model=ResumeParseTaskRespSchema
+)
+async def parse_resume(
+    resume_data: ResumePaseSchema,
+    background_tasks: BackgroundTasks,
+    _: UserModel = Depends(get_current_user),
+):
+    # 创建一个识别简历的后台任务
+    task_id = str(uuid4())
+    background_tasks.add_task(
+        ocr_parse_resume_task, resume_id=resume_data.resume_id, task_id=task_id
+    )
+    return {"task_id": task_id}
+
+
+@router.get(
+    "/resume/parse/{task_id}",
+    summary="获取任务状态",
+    response_model=ResumeParseTaskInfoRespSchema,
+)
+async def get_task_status(
+    task_id: str,
+    cache: HRCache = Depends(get_cache_instance),
+    _: UserModel = Depends(get_current_user),
+):
+    task_info = await cache.get_task_info(task_id)
+    return task_info.model_dump()
 
 
 @router.get("/resume/ocr/test")
