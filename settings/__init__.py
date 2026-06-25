@@ -68,6 +68,9 @@ class Settings(DBSettings, LLMSettings, EmailSettings):
     # --- 简历存储路径 ---
     resume_dir: str = os.path.join(BASE_DIR, "upload")
 
+    # --- 飞桨配置 ---
+    paddle_api_key: str = Field(...)
+
     # --- 邀请码过期时间 ---
     invite_code_expire: int = 60 * 60 * 24 * 2
 

@@ -4,6 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.ocr import PaddleOcr
 from core.pdf import WordToPdfConverter
 from dependencies import get_current_user, get_session_instance
 from models.user import UserModel
@@ -76,3 +77,16 @@ async def resume_upload(
             file_path=file_name, uploader_id=current_user.id
         )
     return {"resume": resume}
+
+
+@router.get("/resume/ocr/test")
+async def resume_ocr_test():
+    file_path = os.path.join(
+        settings.resume_dir, "28e38a36-2962-48a5-8ce9-734a219274a9.pdf"
+    )
+    paddle_ocr = PaddleOcr()
+    job_id = await paddle_ocr.create_job(file_path)
+    jsonl_url = await paddle_ocr.poll_for_state(job_id)
+    contents = await paddle_ocr.fetch_parsed_contents(jsonl_url)
+    logger.info(contents)
+    return "success"

@@ -34,6 +34,7 @@ dependencies = [
     "aiofiles>=25.1.0",
     "pywin32>=312",
     "python-multipart>=0.0.32",
+    "asgiref>=3.11.1",
 ]
 
 [dependency-groups]

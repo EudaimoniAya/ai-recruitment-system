@@ -21,6 +21,7 @@ dependencies = [
     { name = "aiofiles" },
     { name = "apscheduler" },
     { name = "arxiv" },
+    { name = "asgiref" },
     { name = "chromadb" },
     { name = "deepagents" },
     { name = "fastapi" },
@@ -60,6 +61,7 @@ requires-dist = [
     { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "apscheduler", specifier = ">=3.11.2" },
     { name = "arxiv", specifier = ">=1.4.8,<2.0" },
+    { name = "asgiref", specifier = ">=3.11.1" },
     { name = "chromadb", specifier = ">=1.5.9" },
     { name = "deepagents", specifier = ">=0.6.8" },
     { name = "fastapi", specifier = ">=0.137.1" },
@@ -351,6 +353,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/64/f7/33f30d9d1fc9e1396fedf909d7151155f6c2abbd51fe78398ae880daae9a/arxiv-1.4.8.tar.gz", hash = "sha256:2a818ea749eaa62a6e24fc31d53b769b4d33ff55cfc5dda7c7b7d309a3b29373", size = 17104, upload-time = "2023-07-11T05:43:05.69Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f0/06/9b9d553d93e25ae27ec5ba794216afb1af248e43d85a35e922a85cbb396a/arxiv-1.4.8-py3-none-any.whl", hash = "sha256:c3dbef0fb7ed85c9b4c2157b40a62f5a04ce0d2f63c3ff7caa7798abf6166378", size = 12031, upload-time = "2023-07-11T05:43:04.033Z" },
+]
+
+[[package]]
+name = "asgiref"
+version = "3.11.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/40/f03da1264ae8f7cfdbf9146542e5e7e8100a4c66ab48e791df9a03d3f6c0/asgiref-3.11.1.tar.gz", hash = "sha256:5f184dc43b7e763efe848065441eac62229c9f7b0475f41f80e207a114eda4ce", size = 38550, upload-time = "2026-02-03T13:30:14.33Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5c/0a/a72d10ed65068e115044937873362e6e32fab1b7dce0046aeb224682c989/asgiref-3.11.1-py3-none-any.whl", hash = "sha256:e8667a091e69529631969fd45dc268fa79b99c92c5fcdda727757e52146ec133", size = 24345, upload-time = "2026-02-03T13:30:13.039Z" },
 ]
 
 [[package]]
