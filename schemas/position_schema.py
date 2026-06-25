@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from models.positions import EducationEnum
@@ -36,3 +36,7 @@ class PositionSchema(PositionBaseSchema):
 
 class PositionRespSchema(BaseModel):
     position: PositionSchema | None
+
+
+class PositionListRespSchema(BaseModel):
+    positions: List[PositionSchema]
