@@ -6,7 +6,29 @@ from models.positions import PositionModel
 
 
 class PositionRepo(BaseRepo):
+    async def get_by_title_and_department(
+        self, title: str, department_id: str
+    ) -> PositionModel | None:
+        """按职位标题与所属部门查找已有职位（去重依据）。"""
+        stmt = select(PositionModel).where(
+            PositionModel.title == title,
+            PositionModel.department_id == department_id,
+        )
+        return await self.session.scalar(stmt)
+
     async def create_position(self, position_data: dict) -> PositionModel:
+        # 同部门下标题相同的职位视为重复，原地更新以保留 id 及关联引用
+        existing = await self.get_by_title_and_department(
+            position_data["title"], position_data["department_id"]
+        )
+        if existing:
+            # 保留 id、created_at、is_open，其余字段用新数据覆盖
+            skip_fields = {"id", "created_at", "is_open"}
+            for key, value in position_data.items():
+                if key not in skip_fields:
+                    setattr(existing, key, value)
+            return existing
+
         position = PositionModel(**position_data)
         self.session.add(position)
         return position
@@ -31,3 +53,12 @@ class PositionRepo(BaseRepo):
         )
         positions = (await self.session.scalars(stmt)).all()
         return positions
+
+    async def get_by_id(self, position_id: str) -> PositionModel | None:
+        stmt = select(PositionModel).where(PositionModel.id == position_id)
+        position = await self.session.scalar(stmt)
+        return position
+
+    async def delete_position(self, position_id: str):
+        stmt = delete(PositionModel).where(PositionModel.id == position_id)
+        await self.session.execute(stmt)
