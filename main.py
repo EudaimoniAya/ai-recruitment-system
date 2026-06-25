@@ -8,6 +8,7 @@ if sys.platform == "win32":
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.user_router import router as user_router
+from routers.position_router import router as position_router
 import uvicorn
 from settings import settings
 from redis import asyncio as aioredis
@@ -38,6 +39,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(user_router)
+app.include_router(position_router)
 
 
 def main():

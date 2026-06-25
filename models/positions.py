@@ -46,9 +46,7 @@ class PositionModel(BaseModel):
     recruitment_count: Mapped[int] = mapped_column(Integer, default=1)
     # 最低学历要求
     education: Mapped[EducationEnum] = mapped_column(
-        SQLAlchemyEnum(
-            EducationEnum, values_callable=lambda obj: [e.value for e in obj]
-        ),
+        SQLAlchemyEnum(EducationEnum),
         default=EducationEnum.UNKNOWN,
         nullable=False,
     )
