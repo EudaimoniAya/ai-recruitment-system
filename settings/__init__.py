@@ -36,6 +36,8 @@ class LLMSettings(BaseSettings):
     deepseek_api_base: str = Field(...)
     openai_api_key: str = Field(...)
     openai_base_url: str = Field(...)
+    dashscope_api_key: str = Field(...)
+    dashscope_base_url: str = Field(...)
     langchain_api_key: str = Field(...)
     langchain_project: str = Field(...)
     langchain_tracing_v2: bool = Field(...)

@@ -19,5 +19,5 @@ class DingTalkTokenInfoSchema(BaseModel):
 class TaskInfoSchema(BaseModel):
     task_id: str
     status: Literal["pending", "done", "failed"]
-    result: dict[str, Any] | None = None
+    result: AgentCandidateSchema | None = None
     error: str | None = None
