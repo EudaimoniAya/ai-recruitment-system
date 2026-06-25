@@ -31,6 +31,9 @@ dependencies = [
     "loguru>=0.7.3",
     "httpx>=0.28.1",
     "apscheduler>=3.11.2",
+    "aiofiles>=25.1.0",
+    "pywin32>=312",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]

@@ -1,3 +1,4 @@
+import os
 from pydantic_settings import BaseSettings
 from pydantic import computed_field
 from pathlib import Path
@@ -64,6 +65,8 @@ class EmailSettings(BaseSettings):
 
 
 class Settings(DBSettings, LLMSettings, EmailSettings):
+    # --- 简历存储路径 ---
+    resume_dir: str = os.path.join(BASE_DIR, "upload")
 
     # --- 邀请码过期时间 ---
     invite_code_expire: int = 60 * 60 * 24 * 2

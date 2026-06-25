@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.user_router import router as user_router
 from routers.position_router import router as position_router
+from routers.candidate_router import router as candidate_router
 import uvicorn
 from settings import settings
 from redis import asyncio as aioredis
@@ -40,6 +41,7 @@ app.add_middleware(
 )
 app.include_router(user_router)
 app.include_router(position_router)
+app.include_router(candidate_router)
 
 
 def main():
