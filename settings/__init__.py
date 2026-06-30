@@ -25,10 +25,18 @@ class DBSettings(BaseSettings):
     redis_host: str = Field(...)
     redis_port: str = Field(...)
 
+    # --- checkpoint 配置 ---
+    db_agent_name: str = Field(...)
+
     @computed_field
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+psycopg://{self.db_username}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
+    @computed_field
+    @property
+    def DATABASE_AGENT_URL(self) -> str:
+        return f"postgresql+psycopg://{self.db_username}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_agent_name}"
 
 
 class LLMSettings(BaseSettings):
