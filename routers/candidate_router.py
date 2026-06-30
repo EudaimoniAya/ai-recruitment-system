@@ -18,6 +18,8 @@ from core.pdf import WordToPdfConverter
 from dependencies import get_cache_instance, get_current_user, get_session_instance
 from models.user import UserModel
 from repository.candidate_repo import CandidateRepo, ResumeRepo
+from repository.position_repo import PositionRepo
+from repository.user_repo import UserRepo
 from schemas import ResponseSchema
 from schemas.candidate_schema import (
     CandidateCreateSchema,
@@ -32,7 +34,7 @@ from schemas.user_schema import UserSchema
 from settings import settings
 from loguru import logger
 
-from tasks import ocr_parse_resume_task
+from tasks import ocr_parse_resume_task, run_candidate_agent
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
 
@@ -158,3 +160,26 @@ async def resume_ocr_test():
     contents = await paddle_ocr.fetch_parsed_contents(jsonl_url)
     logger.info(contents)
     return "success"
+
+
+@router.get("/agent/test")
+async def agent_test(
+    background_tasks: BackgroundTasks,
+    session: AsyncSession = Depends(get_session_instance),
+):
+    async with session.begin():
+        candidate_repo = CandidateRepo(session=session)
+        position_repo = PositionRepo(session=session)
+        user_repo = UserRepo(session=session)
+
+        candidate_model = await candidate_repo.get_by_id("G3HNq6sWFm8AkpXpNv2HR4")
+        position_model = await position_repo.get_by_id("BmBu4wPPxbwJo6fV7sSjCS")
+        interviewer_model = await user_repo.get_by_id("DzGLB4YZnZ8gicipe8hVQ4")
+
+        background_tasks.add_task(
+            run_candidate_agent,
+            candidate=CandidateSchema.model_validate(candidate_model),
+            position=PositionSchema.model_validate(position_model),
+            interviewer=UserSchema.model_validate(interviewer_model),
+        )
+        return {"result": "success"}

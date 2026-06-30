@@ -6,6 +6,7 @@ from aiosmtplib.errors import (
     SMTPServerDisconnected,
 )
 from loguru import logger
+from agents.candidate import CandidateProcessAgent
 from agents.resume import extract_candidate_info
 from core.cache import HRCache
 from core.mail import create_mail_instance
@@ -16,7 +17,9 @@ from models import AsyncSessionFactory
 from models.candidate import ResumeModel
 from repository.candidate_repo import ResumeRepo
 from schemas.agent_schema import AgentCandidateSchema
-from schemas.candidate_schema import TaskInfoSchema
+from schemas.candidate_schema import CandidateSchema, TaskInfoSchema
+from schemas.position_schema import PositionSchema
+from schemas.user_schema import UserSchema
 from settings import settings
 
 
@@ -98,3 +101,22 @@ async def ocr_parse_resume_task(resume_id: str, task_id: str):
         await cache.set_task_info(
             TaskInfoSchema(task_id=task_id, status="failed", error=str(e))
         )
+
+
+async def run_candidate_agent(
+    candidate: CandidateSchema, position: PositionSchema, interviewer: UserSchema
+):
+    async with CandidateProcessAgent(
+        candidate=candidate, position=position, interviewer=interviewer
+    ) as agent:
+        response = await agent.ainvoke(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"候选人信息：{candidate.model_dump_json()}，职位信息：{position.model_dump_json()}",
+                }
+            ],
+            thread_id=candidate.email,
+        )
+        print(response)
+        return response

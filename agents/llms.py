@@ -9,7 +9,7 @@ qwen_llm = ChatOpenAI(
 )
 
 deepseek_llm = ChatOpenAI(
-    model="deepseek-v3.2",
+    model="deepseek-v4-flash",
     base_url=settings.deepseek_api_base,
     api_key=settings.deepseek_api_key,
 )

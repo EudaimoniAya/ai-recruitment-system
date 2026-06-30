@@ -31,6 +31,8 @@ class UserSchema(BaseModel):
     is_hr: bool = Field(..., description="是否HR")
     created_at: datetime = Field(..., description="创建时间")
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserLoginRespSchema(BaseModel):
     access_token: str = Field(..., description="access_token")
