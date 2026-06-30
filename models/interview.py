@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 class InterviewResultEnum(str, enum.Enum):
     PASSED = "PASSED"
     FAILED = "FAILED"
+    PENDING = "PENDING"
 
 
 class InterviewModel(BaseModel):
