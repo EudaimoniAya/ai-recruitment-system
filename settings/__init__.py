@@ -62,6 +62,12 @@ class EmailSettings(BaseSettings):
     mail_starttls: bool = True
     mail_ssl_tls: bool = False
 
+    # 邮箱机器人配置
+    email_bot_imap_host: str = "imap.qq.com"
+    email_bot_smtp_host: str = "smtp.qq.com"
+    email_bot_email: str = Field(..., validation_alias="MAIL_USERNAME")
+    email_bot_password: str = Field(..., validation_alias="MAIL_PASSWORD")
+
     @model_validator(mode="after")
     def validate_mail_from(self):
         if self.mail_from is None:
