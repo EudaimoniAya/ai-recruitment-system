@@ -71,3 +71,7 @@ class CandidateSchema(BaseModel):
     creator: UserSchema = Field(..., description="创建该候选人的信息")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CandidateListSchema(BaseModel):
+    candidates: list[CandidateSchema]

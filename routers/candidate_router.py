@@ -9,6 +9,7 @@ from fastapi import (
     HTTPException,
     UploadFile,
     status,
+    Query,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +17,7 @@ from core.cache import HRCache
 from core.ocr import PaddleOcr
 from core.pdf import WordToPdfConverter
 from dependencies import get_cache_instance, get_current_user, get_session_instance
+from models.candidate import CandidateStatusEnum
 from models.user import UserModel
 from repository.candidate_repo import CandidateRepo, ResumeRepo
 from repository.position_repo import PositionRepo
@@ -23,6 +25,7 @@ from repository.user_repo import UserRepo
 from schemas import ResponseSchema
 from schemas.candidate_schema import (
     CandidateCreateSchema,
+    CandidateListSchema,
     CandidateSchema,
     ResumeParseTaskInfoRespSchema,
     ResumeParseTaskRespSchema,
@@ -146,7 +149,39 @@ async def create_candidate(
         candidate_dict["creator_id"] = current_user.id
         candidate_repo = CandidateRepo(session=session)
         candidate = await candidate_repo.create_candidate(candidate_dict)
+        candidate_schema = CandidateSchema.model_validate(candidate)
+        position_schema = PositionSchema.model_validate(candidate.position)
+        interviewer_schema = UserSchema.model_validate(candidate.position.creator)
+
+    background_tasks.add_task(
+        run_candidate_agent,
+        candidate=candidate_schema,
+        position=position_schema,
+        interviewer=interviewer_schema,
+    )
+
     return ResponseSchema()
+
+
+@router.get("/list", summary="获取候选人列表", response_model=CandidateListSchema)
+async def get_candidate_list(
+    page: int = Query(1, description="页码"),
+    size: int = Query(10, description="每页的数量"),
+    position_id: str | None = Query(None, description="职位的ID"),
+    status: CandidateStatusEnum | None = Query(None, description="候选人状态"),
+    session: AsyncSession = Depends(get_session_instance),
+    current_user: UserModel = Depends(get_current_user),
+):
+    async with session.begin():
+        candidate_repo = CandidateRepo(session=session)
+        candidates = await candidate_repo.get_list(
+            current_user=current_user,
+            position_id=position_id,
+            status=status,
+            page=page,
+            size=size,
+        )
+        return {"candidates": candidates}
 
 
 @router.get("/resume/ocr/test")
