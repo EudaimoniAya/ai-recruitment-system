@@ -86,6 +86,16 @@ def iso8601_to_datetime_beijing(iso_str: str) -> datetime:
     return dt
 
 
+def to_naive_beijing_datetime(dt: datetime) -> datetime:
+    """
+    将 datetime 转为无时区的北京时间，便于与 naive datetime 比较或计算。
+    """
+    beijing_tz = timezone(timedelta(hours=8))
+    if dt.tzinfo is None:
+        return dt
+    return dt.astimezone(beijing_tz).replace(tzinfo=None)
+
+
 # ==================== 测试用例 ====================
 if __name__ == "__main__":
     print("=" * 60)

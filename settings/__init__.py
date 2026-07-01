@@ -4,9 +4,13 @@ from pydantic import computed_field
 from pathlib import Path
 from datetime import timedelta
 import secrets
+from dotenv import load_dotenv
 
 # 项目根目录
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# 将 .env 加载到 os.environ，供 LangChain / LangSmith 等直接读取环境变量的库使用
+load_dotenv(BASE_DIR / ".env")
 
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -117,3 +121,15 @@ class Settings(DBSettings, LLMSettings, EmailSettings):
 
 
 settings = Settings()
+
+
+def apply_langsmith_env() -> None:
+    """把 LangSmith 配置同步到 os.environ（LangChain 运行时只读环境变量）。"""
+    os.environ["LANGCHAIN_TRACING_V2"] = (
+        "true" if settings.langchain_tracing_v2 else "false"
+    )
+    os.environ["LANGCHAIN_API_KEY"] = settings.langchain_api_key
+    os.environ["LANGCHAIN_PROJECT"] = settings.langchain_project
+
+
+apply_langsmith_env()

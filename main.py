@@ -1,5 +1,11 @@
 import asyncio
 import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# 尽早加载 .env，避免 router/agent 导入 LangChain 时还未注入 LangSmith 环境变量
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 # Windows 下 psycopg 异步模式不支持 ProactorEventLoop，需切换为 SelectorEventLoop
 if sys.platform == "win32":
@@ -15,6 +21,7 @@ from settings import settings
 from redis import asyncio as aioredis
 from core.cache import init_redis
 from contextlib import asynccontextmanager
+from scheduler import start_email_polling
 
 
 @asynccontextmanager
@@ -25,8 +32,13 @@ async def lifespan(_: FastAPI):
         decode_responses=True,
     )
     init_redis(redis)
+    bot, scheduler = await start_email_polling()
     yield
     await redis.aclose()
+    if bot.is_connected:
+        await bot.close()
+    if scheduler.running:
+        scheduler.shutdown()
 
 
 app = FastAPI(lifespan=lifespan)

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import json
 from typing import Annotated, Any, List, Optional, TypeVar
 
@@ -33,9 +33,27 @@ from langchain.agents import create_agent
 from agents.llms import deepseek_llm, qwen_llm
 from langchain.agents.middleware import ModelFallbackMiddleware, SummarizationMiddleware
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from settings import settings
+
+# Agent state 持久化到 checkpoint 时涉及的自定义类型，需注册 msgpack 反序列化白名单
+CHECKPOINT_ALLOWED_MSGPACK_MODULES: list[tuple[str, str]] = [
+    ("models.positions", "EducationEnum"),
+    ("models.user", "UserStatus"),
+    ("models.candidate", "GenderEnum"),
+    ("models.candidate", "CandidateStatusEnum"),
+    ("schemas.position_schema", "PositionSchema"),
+    ("schemas.candidate_schema", "CandidateSchema"),
+    ("schemas.candidate_schema", "ResumeSchema"),
+    ("schemas.user_schema", "UserSchema"),
+    ("schemas.user_schema", "DepartmentSchema"),
+]
 from utils.available_time import find_available_slot
-from utils.iso8601 import iso8601_to_datetime_beijing
+from utils.iso8601 import (
+    datetime_to_iso8601_beijing,
+    iso8601_to_datetime_beijing,
+    to_naive_beijing_datetime,
+)
 
 
 async def get_dingtalk_access_token(user_id: str) -> str:
@@ -149,8 +167,8 @@ async def get_interviewer_available_slot(runtime: ToolRuntime[CandidateAgentStat
         async with session.begin():
             try:
                 user_repo = UserRepo(session)
-                dingding_user: DingdingUserModel = user_repo.get_dingding_user(
-                    user_id=interviewer.user_id
+                dingding_user: DingdingUserModel = await user_repo.get_dingding_user(
+                    user_id=interviewer.id
                 )
                 if not dingding_user:
                     return f"获取候选人可用时间失败，没有绑定钉钉账号！"
@@ -160,7 +178,7 @@ async def get_interviewer_available_slot(runtime: ToolRuntime[CandidateAgentStat
 
     try:
         # 2. 获取access_token
-        access_token: str = await get_dingtalk_access_token(interviewer.user_id)
+        access_token: str = await get_dingtalk_access_token(interviewer.id)
     except Exception as e:
         logger.error(e)
         return f"获取面试官可用时间失败：{e}"
@@ -169,17 +187,25 @@ async def get_interviewer_available_slot(runtime: ToolRuntime[CandidateAgentStat
     try:
         dingtalk_http = DingTalkHttp()
         now = datetime.now()
-        tomorrow_nine = datetime(year=now.year, month=now.month, day=now.day, hour=9)
+        # 从明天 9:00 起查询未来 7 天的空闲时段
+        tomorrow_nine = datetime.combine(
+            (now + timedelta(days=1)).date(), time(9, 0)
+        )
         events: list[dict[str, Any]] = await dingtalk_http.get_calendar_list(
             union_id=union_id,
             access_token=access_token,
             time_min=tomorrow_nine,
             time_max=tomorrow_nine + timedelta(days=7),
-        )
+        ) or []
+        # 钉钉日程为带时区 datetime，需转为 naive 北京时间再与 find_available_slot 比较
         busy_slots = [
             (
-                iso8601_to_datetime_beijing(event["start"]["dateTime"]),
-                iso8601_to_datetime_beijing(event["end"]["dateTime"]),
+                to_naive_beijing_datetime(
+                    iso8601_to_datetime_beijing(event["start"]["dateTime"])
+                ),
+                to_naive_beijing_datetime(
+                    iso8601_to_datetime_beijing(event["end"]["dateTime"])
+                ),
             )
             for event in events
         ]
@@ -189,10 +215,13 @@ async def get_interviewer_available_slot(runtime: ToolRuntime[CandidateAgentStat
         if len(available_slots) == 0:
             return f"获取面试官可用时间失败：7天内没有空闲时间！"
         available_times = [
-            (iso8601_to_datetime_beijing(slot[0]), iso8601_to_datetime_beijing(slot[1]))
+            {
+                "start": datetime_to_iso8601_beijing(slot[0]),
+                "end": datetime_to_iso8601_beijing(slot[1]),
+            }
             for slot in available_slots
         ]
-        return f"找到面试官可用的时间：{json.dumps(available_times)}"
+        return f"找到面试官可用的时间：{json.dumps(available_times, ensure_ascii=False)}"
     except Exception as e:
         return f"获取面试官可用时间失败：{e}"
 
@@ -455,8 +484,12 @@ class CandidateProcessAgent:
 
     async def __aenter__(self):
         # langchain如果大模型选择了一个工具，那么这个工具消息后的消息必须是工具调用后的结果，否则会报错
+        serde = JsonPlusSerializer(
+            allowed_msgpack_modules=CHECKPOINT_ALLOWED_MSGPACK_MODULES
+        )
         self._checkpointer_conn = AsyncPostgresSaver.from_conn_string(
-            settings.DATABASE_AGENT_URL
+            settings.DATABASE_AGENT_URL,
+            serde=serde,
         )
         self._checkpointer = await self._checkpointer_conn.__aenter__()
         await self._checkpointer.setup()

@@ -172,7 +172,7 @@ async def agent_test(
         position_repo = PositionRepo(session=session)
         user_repo = UserRepo(session=session)
 
-        candidate_model = await candidate_repo.get_by_id("G3HNq6sWFm8AkpXpNv2HR4")
+        candidate_model = await candidate_repo.get_by_id("GR8BxgS27f8gEQAENpSwYe")
         position_model = await position_repo.get_by_id("BmBu4wPPxbwJo6fV7sSjCS")
         interviewer_model = await user_repo.get_by_id("DzGLB4YZnZ8gicipe8hVQ4")
 

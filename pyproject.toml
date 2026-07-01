@@ -35,6 +35,7 @@ dependencies = [
     "pywin32>=312",
     "python-multipart>=0.0.32",
     "asgiref>=3.11.1",
+    "python-dotenv>=1.2.2",
 ]
 
 [dependency-groups]
