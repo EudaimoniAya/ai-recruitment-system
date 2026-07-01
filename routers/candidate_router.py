@@ -18,15 +18,19 @@ from core.ocr import PaddleOcr
 from core.pdf import WordToPdfConverter
 from dependencies import get_cache_instance, get_current_user, get_session_instance
 from models.candidate import CandidateStatusEnum
+from models.interview import InterviewModel, InterviewResultEnum
 from models.user import UserModel
-from repository.candidate_repo import CandidateRepo, ResumeRepo
+from repository.candidate_repo import CandidateAIScoreRepo, CandidateRepo, ResumeRepo
+from repository.interview_repo import InterviewRepo
 from repository.position_repo import PositionRepo
 from repository.user_repo import UserRepo
 from schemas import ResponseSchema
 from schemas.candidate_schema import (
+    CandidateAIScoreRespSchema,
     CandidateCreateSchema,
     CandidateListSchema,
     CandidateSchema,
+    CandidateStatusUpdateSchema,
     ResumeParseTaskInfoRespSchema,
     ResumeParseTaskRespSchema,
     ResumePaseSchema,
@@ -182,6 +186,107 @@ async def get_candidate_list(
             size=size,
         )
         return {"candidates": candidates}
+
+
+@router.patch(
+    "/{candidate_id}/status", summary="更新候选人状态", response_model=ResponseSchema
+)
+async def update_candidate_status(
+    candidate_id: str,
+    status_data: CandidateStatusUpdateSchema,
+    session: AsyncSession = Depends(get_session_instance),
+    current_user: UserModel = Depends(get_current_user),
+):
+    async with session.begin():
+        candidate_repo = CandidateRepo(session)
+        interview_repo = InterviewRepo(session)
+        candidate = await candidate_repo.get_by_id(candidate_id)
+        if not candidate:
+            raise HTTPException(status_code=404, detail="候选人不存在")
+        # 更改状态，状态只能从前往后流转
+        status_flow = [
+            CandidateStatusEnum.APPLICATION,
+            CandidateStatusEnum.AI_FILTER_FAILED,
+            CandidateStatusEnum.AI_FILTER_PASSED,
+            CandidateStatusEnum.WAITING_FOR_INTERVIEW,
+            CandidateStatusEnum.REFUSED_INTERVIEW,
+            CandidateStatusEnum.INTERVIEW_PASSED,
+            CandidateStatusEnum.INTERVIEW_REJECTED,
+            CandidateStatusEnum.HIRED,
+            CandidateStatusEnum.REJECTED,
+        ]
+        try:
+            current_idx = status_flow.index(candidate.status)
+            target_idx = status_flow.index(status_data.status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="非法的候选人状态")
+
+        if target_idx <= current_idx:
+            raise HTTPException(status_code=400, detail="候选人状态只能往后流转")
+
+        if status_data.status == CandidateStatusEnum.WAITING_FOR_INTERVIEW:
+            if not status_data.interview_time:
+                raise HTTPException(
+                    status_code=400, detail="变更为待面试时必须填写面试时间"
+                )
+            await interview_repo.create_interview(
+                dict(
+                    scheduled_time=status_data.interview_time,
+                    candidate_id=candidate_id,
+                    interviewer_id=current_user.id,
+                )
+            )
+        elif status_data.status == CandidateStatusEnum.INTERVIEW_REJECTED:
+            if not status_data.rejection_reason:
+                raise HTTPException(
+                    status_code=400, detail="变更为面试未通过时必须填写未通过原因"
+                )
+            # 如果面试失败了，一般来讲，应该是之前就已经创建过一个面试记录了
+            interview: InterviewModel = await interview_repo.get_by_candidate_id(
+                candidate_id
+            )
+            if interview is not None:
+                await interview_repo.update_interview(
+                    interview_id=interview.id,
+                    interview_dict={
+                        "feeback": status_data.rejection_reason,
+                        "result": InterviewResultEnum.FAILED,
+                    },
+                )
+            else:
+                await interview_repo.create_interview(
+                    dict(
+                        scheduled_time=status_data.interview_time,
+                        feedback=status_data.rejection_reason,
+                        result=InterviewResultEnum.FAILED,
+                        candidate_id=candidate_id,
+                        interviewer_id=current_user.id,
+                    )
+                )
+
+        # 更新候选人状态
+        await candidate_repo.update_candidate_status(
+            candidate_id=candidate_id, status=status_data.status
+        )
+        return ResponseSchema()
+
+
+@router.get(
+    "/ai-score/{candidate_id}",
+    summary="获取候选人AI得分",
+    response_model=CandidateAIScoreRespSchema,
+)
+async def get_candidate_ai_score(
+    candidate_id: str,
+    session: AsyncSession = Depends(get_session_instance),
+    _: UserModel = Depends(get_current_user),
+):
+    async with session.begin():
+        score_repo = CandidateAIScoreRepo(session)
+        ai_score = await score_repo.get_by_candidate_id(candidate_id)
+        if not ai_score:
+            raise HTTPException(status_code=400, detail="候选人的AI评分不存在！")
+        return {"ai_score": ai_score}
 
 
 @router.get("/resume/ocr/test")
